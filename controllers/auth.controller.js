@@ -4,6 +4,7 @@ import Student from "../models/student.model.js";
 import transporter from "../config/nodemailer.js";
 import Admin from "../models/admin.model.js";
 import mongoose from "mongoose";
+import Coupon from "../models/coupon.model.js";
 
 console.log('SECRET:', process.env.SENDER_EMAIL, process.env.SECRET_URL_KEY);
 
@@ -438,7 +439,7 @@ const verifyStudent = async (req, res) => {
     student.profileVerified = true;
     await student.save();
     
-    if (student.coupon.trim().toLowerCase() === "fatima" || student.coupon.trim().toLowerCase() === "asad", student.coupon.trim().toLowerCase() === "azan" || student.coupon.trim().toLowerCase() === "skillssikhao", student.coupon.trim().toLowerCase() === "getfree") {
+    if (student.coupon) {
       const mailOptions = {
   from: `"Skills Sikhao" <${process.env.SENDER_EMAIL}>`,
   to: student.email,
@@ -622,6 +623,191 @@ const downloadIdCard = async (req, res) => {
   }
 };
 
+// Create Coupon
+
+const createCoupon = async (req, res) => {
+  try {
+    const { name, coupon, password } = req.body;
+    if (!name || !coupon || !password) {
+      return res
+        .status(400)
+        .json({ success: false, error: "All fields are required" });
+    }
+
+const admins = await Admin.find();
+
+if (admins.length === 0) {
+  return res.status(404).json({ success: false, error: "No Admins Found" });
+}
+
+let matchedAdmin = null;
+
+for (const oneAdmin of admins) {
+  const isMatch = await bcrypt.compare(password, oneAdmin.password);
+  if (isMatch) {
+    matchedAdmin = oneAdmin;
+    break; // stop as soon as we find a match
+  }
+}
+
+if (!matchedAdmin) {
+  return res.status(400).json({ success: false, error: "You are not authorized" });
+}
+
+if (!matchedAdmin.adminVerified) {
+  return res.status(403).json({ success: false, error: "You are not authorized" });
+}
+
+
+
+
+    const couponCode = await Coupon.findOne({ coupon });
+
+    if (couponCode) {
+      return res
+        .status(300)
+        .json({ success: false, error: "This coupon code already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const createCoupon = new Coupon({
+      name,
+      coupon,
+      password: hashedPassword,
+    });
+
+    await createCoupon.save();
+
+    res.status(200).json({
+      success: true,
+      // id: matchedAdmin._id.toString() || "",
+      message: "Coupon code created successfully"
+    });
+
+
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+
+const getCoupons = async (req, res) => {
+  try {
+    const coupons = await Coupon.find().select("coupon -_id"); 
+
+    if (!coupons || coupons.length === 0) {
+      return res.status(404).json({ success: false, error: "Invalid coupon code" });
+    }
+
+    // Convert to array of strings
+    const couponList = coupons.map(c => c.coupon);
+    res.json(couponList);
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+
+const getCouponsData = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, error: "All fields are required" });
+    }
+    const admin = await Admin.findOne({ email });
+
+    if (!admin) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Invalid email or password" });
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid email or password" });
+    }
+    if (!admin.adminVerified) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Admin not verified" });
+    }
+
+ const coupons = await Coupon.find().select("_id name coupon");
+
+if (!coupons || coupons.length === 0) {
+  return res.status(404).json({ success: false, error: "Coupons not available" });
+}
+
+
+res.json(coupons);
+
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+const deleteCoupon = async (req, res) => {
+  try {
+        const { id } = req.body;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, error: "Invalid request" });
+    }
+
+    const couponDelete = await Coupon.findByIdAndDelete(id);
+
+    if (!couponDelete) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Invalid request" });
+    }
+
+      return res.status(200).json({
+      success: true,
+      message: "Coupon deleted successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+}
+
+
+const couponDetails = async (req, res) => {
+try {
+    const {coupon} = req.body
+
+    const findCoupon = await Coupon.findOne({coupon});
+    if (!findCoupon) {
+        return res
+          .status(404)
+          .json({ success: false, error: "You can't see details" });
+      }
+  
+    const students = await Student.find({ coupon }).select("fullName coupon createdAt -_id");
+  
+        if (!students) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Your Data is empty" });
+      }
+
+    res.json(students);
+  
+ } catch (error) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+
+}
+
+
 export {
   studentRegister,
   adminRegister,
@@ -631,4 +817,9 @@ export {
   verifyStudent,
   rejectStudent,
   downloadIdCard,
+  createCoupon,
+  getCoupons,
+  getCouponsData,
+  deleteCoupon,
+  couponDetails
 };

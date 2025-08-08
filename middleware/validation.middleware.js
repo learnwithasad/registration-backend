@@ -53,6 +53,38 @@ const adminRegisterValidation = [
     .withMessage("Password must be under 16 characters"),
 ];
 
+// Coupon validation
+
+const createCouponrValidation = [
+  body("name")
+    .notEmpty()
+    .withMessage("Name is required")
+    .isLength({ min: 3 })
+    .withMessage("Name must be at least 3 characters long"),
+
+    body("coupon")
+    .notEmpty()
+    .withMessage("Coupon Code is required")
+    .isLength({ min: 3 })
+    .withMessage("Coupon Code must be at least 3 characters long"),
+
+  body("password")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters long")
+    .isLength({ max: 16 })
+    .withMessage("Password must be under 16 characters"),
+];
+
+const getCouponrValidation = [
+body("email").isEmail().withMessage("Enter a valid email"),
+
+  body("password")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters long")
+    .isLength({ max: 16 })
+    .withMessage("Password must be under 16 characters"),
+];
+
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -61,4 +93,4 @@ const validate = (req, res, next) => {
   next();
 };
 
-export { registerValidation, validate, adminRegisterValidation };
+export { registerValidation, validate, adminRegisterValidation, createCouponrValidation, getCouponrValidation };
