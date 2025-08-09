@@ -793,15 +793,18 @@ try {
           .json({ success: false, error: "You can't see details" });
       }
   
-    const students = await Student.find({ coupon }).select("fullName coupon createdAt -_id");
-  
-        if (!students) {
-        return res
-          .status(404)
-          .json({ success: false, error: "Your Data is empty" });
-      }
+const students = await Student.find({ 
+    coupon, 
+    profileVerified: true 
+}).select("fullName coupon createdAt -_id");
 
-    res.json(students);
+if (!students || students.length === 0) {
+    return res
+      .status(404)
+      .json({ success: false, error: "Your Data is empty" });
+}
+
+  res.json(students);
   
  } catch (error) {
     res.status(500).json({ success: false, error: "Server error" });
