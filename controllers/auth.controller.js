@@ -88,7 +88,7 @@ const studentRegister = async (req, res) => {
       phone,
       email,
       cnic,
-      coupon,
+      coupon: coupon.trim().toLowerCase(),
       password: hashedPassword,
       profilePic: profilePicUrl,
       paymentScreenshot: paymentScreenshotUrl,
