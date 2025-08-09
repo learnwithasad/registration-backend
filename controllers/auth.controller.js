@@ -671,9 +671,11 @@ if (!matchedAdmin.adminVerified) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+  
+
     const createCoupon = new Coupon({
       name,
-      coupon,
+      coupon: coupon.trim().toLowerCase(),
       password: hashedPassword,
     });
 
